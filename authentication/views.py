@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.exceptions import TokenError
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.contrib.auth.password_validation import validate_password
@@ -57,8 +57,7 @@ class SignupView(APIView):
         )
 
 
-class LoginView(TokenObtainPairView):
-    serializer_class = LoginSerializer
+class LoginView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -66,12 +65,14 @@ class LoginView(TokenObtainPairView):
         request=LoginRequestSerializer,
         responses={
             200: TokenResponseSerializer,
-            401: OpenApiResponse(description='Invalid credentials'),
+            400: OpenApiResponse(description='Invalid credentials'),
         },
         tags=['Authentication'],
     )
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 class TokenRefreshView(TokenRefreshView):

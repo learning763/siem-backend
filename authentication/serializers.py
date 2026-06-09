@@ -17,12 +17,12 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = ('email', 'first_name', 'last_name', 'password', 'country', 'password_confirm')
 
     def validate(self, attrs):
-        if attrs['password'] != attrs.pop('password_confirm'):
+        if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
+        validated_data.pop('password_confirm', None)
         return User.objects.create_user(**validated_data)
 
 
