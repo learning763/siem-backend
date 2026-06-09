@@ -13,6 +13,11 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.exceptions import TokenError
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.contrib.auth.password_validation import validate_password
+from rest_framework import generics
+from rest_framework.filters import SearchFilter
+from django.db.models import Q
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 
 
 from .serializers import (
@@ -260,3 +265,54 @@ class ActivateUserView(APIView):
             {"message": "User activated successfully"},
             status=status.HTTP_200_OK
         )
+    
+@extend_schema(
+    summary="List, search, or get user by id",
+    parameters=[
+        OpenApiParameter(
+            name="search",
+            type=str,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Search by email, first name, or last name",
+        ),
+        OpenApiParameter(
+            name="id",
+            type=int,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Get user by ID",
+        ),
+    ],
+    tags=["User Management"],
+)
+
+class UserView(generics.GenericAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        user_id = request.query_params.get("id")
+        search = request.query_params.get("search")
+
+        # GET BY ID
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return Response({"error": "User not found"}, status=404)
+
+            return Response(self.get_serializer(user).data)
+
+        # LIST + SEARCH
+        queryset = User.objects.all().order_by("-date_joined")
+
+        if search:
+            queryset = queryset.filter(
+                Q(email__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search)
+            )
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
