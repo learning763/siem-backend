@@ -5,7 +5,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -23,7 +23,8 @@ from .serializers import (
     SignupResponseSerializer,
     LoginRequestSerializer,
     PasswordResetRequestSerializer,
-    PasswordResetConfirmSerializer
+    PasswordResetConfirmSerializer,
+    ActivateUserSerializer
 )
 
 User = get_user_model()
@@ -137,7 +138,7 @@ class PasswordResetRequestView(APIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(
-                {"message": "If email exists, reset link will be sent"},
+                {"message": "This email is not registered"},
                 status=status.HTTP_200_OK
             )
 
@@ -222,5 +223,39 @@ class PasswordResetConfirmView(APIView):
 
         return Response(
             {"message": "Password reset successful"},
+            status=status.HTTP_200_OK
+        )
+    
+
+class ActivateUserView(APIView):
+    permission_classes = [IsAdminUser]  # 🔒 only admin can activate
+
+    @extend_schema(
+        request=ActivateUserSerializer,
+        responses={
+            200: OpenApiResponse(description="User activated successfully"),
+            404: OpenApiResponse(description="User not found"),
+        },
+        tags=["User Management"],
+    )
+    def post(self, request):
+        serializer = ActivateUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_id = serializer.validated_data["user_id"]
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        user.is_active = True
+        user.save()
+
+        return Response(
+            {"message": "User activated successfully"},
             status=status.HTTP_200_OK
         )

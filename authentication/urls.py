@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SignupView, LoginView, TokenRefreshView, LogoutView, MeView, PasswordResetRequestView, PasswordResetConfirmView 
+from .views import SignupView, LoginView, TokenRefreshView, LogoutView, MeView, PasswordResetRequestView, PasswordResetConfirmView, ActivateUserView
 
 urlpatterns = [
     path('signup/', SignupView.as_view(), name='auth-signup'),
@@ -9,5 +9,6 @@ urlpatterns = [
     path('me/', MeView.as_view(), name='auth-me'),
     path('password-reset/', PasswordResetRequestView.as_view()),
     path('password-reset-confirm/', PasswordResetConfirmView.as_view()),
+    path('activate-user/', ActivateUserView.as_view()),
 
 ]

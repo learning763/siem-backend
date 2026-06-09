@@ -95,3 +95,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField()
     uid = serializers.CharField()
     new_password = serializers.CharField(write_only=True)
+
+class ActivateUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
